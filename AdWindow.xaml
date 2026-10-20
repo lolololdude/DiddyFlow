@@ -33,7 +33,7 @@
                                Margin="1,3,0,0" />
                     <Border Background="{StaticResource AccentFaintBrush}" CornerRadius="6" Padding="8,3" Margin="12,0,0,0"
                             BorderBrush="{StaticResource AccentDeepBrush}" BorderThickness="1">
-                        <TextBlock Text="100% FAKE AD" FontSize="9" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="SPONSORED" FontSize="9" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" />
                     </Border>
                 </StackPanel>
                 <Button x:Name="CloseButton" Style="{StaticResource IconButton}" Content="&#xE8BB;" HorizontalAlignment="Right"

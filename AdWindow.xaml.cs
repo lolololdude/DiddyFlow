@@ -31,8 +31,7 @@ public partial class AdWindow : Window
     private MediaPlayer? _player;
     private Media? _media;
     private double _elapsed;
-    private double _endHold;
-    private bool _ended;
+    private bool _videoEnded;
     private bool _playingVideo;
     private bool _disposed;
     private double _glowPhase;
@@ -85,12 +84,11 @@ public partial class AdWindow : Window
     {
         IsManual = manual;
         _elapsed = 0;
-        _endHold = 0;
-        _ended = false;
+        _videoEnded = false;
         _playingVideo = false;
         _glowPhase = 0;
         _adNumber++;
-        AdCounter.Text = $"AD {_adNumber} · NOT A REAL AD";
+        AdCounter.Text = $"AD {_adNumber}";
         AdProgress.Value = 0;
         SkipButton.IsEnabled = false;
         SkipButton.Content = "Skip ad";
@@ -166,6 +164,7 @@ public partial class AdWindow : Window
             _media?.Dispose();
             _media = new Media(_libVlc, new Uri(path, UriKind.Absolute));
             _playingVideo = _player.Play(_media);
+            _videoEnded = !_playingVideo;
             return _playingVideo;
         }
         catch (Exception ex)
@@ -190,11 +189,12 @@ public partial class AdWindow : Window
         FallbackPanel.Visibility = Visibility.Visible;
         FallbackSlogan.Text = _ads.RandomSlogan();
         FallbackBar.Width = 90 + (_random.NextDouble() * 120);
+        _videoEnded = true;
     }
 
     private void HandleMediaEnded()
     {
-        _ended = true;
+        _videoEnded = true;
         if (CanSkip)
         {
             CloseButton.Visibility = Visibility.Visible;
@@ -217,7 +217,7 @@ public partial class AdWindow : Window
     private void OnTick(object? sender, EventArgs e)
     {
         _elapsed += 0.12;
-        if (_playingVideo && _player is { Length: > 0 })
+        if (_playingVideo && !_videoEnded && _player is { Length: > 0 })
         {
             AdProgress.Value = Math.Clamp(_player.Position * 100, 0, 100);
         }
@@ -228,22 +228,19 @@ public partial class AdWindow : Window
 
         if (!CanSkip)
         {
-            SkipHint.Text = $"Skip unlocks in {Math.Max(0, Math.Ceiling(_settings.Settings.AdSkipSeconds - _elapsed)):0}";
+            var remaining = Math.Max(0, Math.Ceiling(_settings.Settings.AdSkipSeconds - _elapsed));
+            SkipHint.Text = _videoEnded ? $"Ad ends in {remaining:0}" : $"Skip unlocks in {remaining:0}";
             return;
         }
 
         SkipButton.IsEnabled = true;
         SkipButton.Content = "Skip ad →";
         CloseButton.Visibility = Visibility.Visible;
-        SkipHint.Text = "This ad is a joke. Skip away.";
+        SkipHint.Text = "You can skip this ad.";
 
-        if (_ended)
+        if (_videoEnded)
         {
-            _endHold += 0.12;
-            if (_endHold >= 3.2)
-            {
-                Close();
-            }
+            Close();
         }
     }
 

@@ -45,6 +45,7 @@ public sealed class AppSettings
     public int AdSkipSeconds { get; set; } = 5;
     public bool AdSound { get; set; } = true;
     public List<string> AdVideos { get; set; } = new();
+    public List<string> HiddenAdVideos { get; set; } = new();
     public int LastAdIndex { get; set; } = -1;
 
     public int TotalWords { get; set; }

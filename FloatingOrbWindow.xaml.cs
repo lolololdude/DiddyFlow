@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -14,12 +15,14 @@ public partial class FloatingOrbWindow : Window
 {
     private readonly SettingsService _settings;
     private readonly DispatcherTimer _pulseTimer;
+    private readonly DispatcherTimer _dragTimer;
     private readonly ScaleTransform _orbScale = new(1, 1, 43, 43);
     private DictationState _state = DictationState.Idle;
     private double _phase;
     private bool _pressed;
     private bool _dragging;
-    private Point _dragOrigin;
+    private double _dragStartX;
+    private double _dragStartY;
     private double _originLeft;
     private double _originTop;
     private double _level;
@@ -32,9 +35,14 @@ public partial class FloatingOrbWindow : Window
         SourceInitialized += OnSourceInitialized;
         Loaded += OnLoaded;
         MouseLeftButtonDown += OnMouseLeftButtonDown;
-        MouseMove += OnMouseMove;
         MouseLeftButtonUp += OnMouseLeftButtonUp;
-        MouseRightButtonUp += (_, _) => OpenRequested?.Invoke(this, EventArgs.Empty);
+        Root.ContextMenu = CreateMenu();
+
+        _dragTimer = new DispatcherTimer(DispatcherPriority.Input)
+        {
+            Interval = TimeSpan.FromMilliseconds(15)
+        };
+        _dragTimer.Tick += (_, _) => PollDrag();
 
         _pulseTimer = new DispatcherTimer(DispatcherPriority.Render)
         {
@@ -45,6 +53,7 @@ public partial class FloatingOrbWindow : Window
 
     public event EventHandler? ToggleRequested;
     public event EventHandler? OpenRequested;
+    public event EventHandler? HideRequested;
 
     public void ApplyBranding(AppSettings settings)
     {
@@ -159,56 +168,146 @@ public partial class FloatingOrbWindow : Window
 
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        _pressed = true;
-        _dragging = false;
-        _dragOrigin = e.GetPosition(this);
-        _originLeft = Left;
-        _originTop = Top;
-        CaptureMouse();
-    }
-
-    private void OnMouseMove(object sender, MouseEventArgs e)
-    {
-        if (!_pressed || !IsMouseCaptured)
+        if (e.ChangedButton != MouseButton.Left)
         {
             return;
         }
 
-        var position = e.GetPosition(this);
-        var dx = position.X - _dragOrigin.X;
-        var dy = position.Y - _dragOrigin.Y;
-        if (!_dragging && (Math.Abs(dx) > 5 || Math.Abs(dy) > 5))
-        {
-            _dragging = true;
-        }
-
-        if (_dragging)
-        {
-            Left = _originLeft + dx;
-            Top = _originTop + dy;
-        }
+        _pressed = true;
+        _dragging = false;
+        _originLeft = Left;
+        _originTop = Top;
+        var cursor = ScreenCursor();
+        _dragStartX = cursor.X;
+        _dragStartY = cursor.Y;
+        _dragTimer.Start();
+        e.Handled = true;
     }
 
     private void OnMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {
-        if (IsMouseCaptured)
+        if (e.ChangedButton != MouseButton.Left)
         {
-            ReleaseMouseCapture();
+            return;
         }
 
+        EndDrag();
+    }
+
+    private void PollDrag()
+    {
+        if (!_pressed)
+        {
+            _dragTimer.Stop();
+            return;
+        }
+
+        if ((NativeMethods.GetAsyncKeyState(NativeMethods.VkLeftButton) & 0x8000) == 0)
+        {
+            EndDrag();
+            return;
+        }
+
+        var cursor = ScreenCursor();
+        var dx = cursor.X - _dragStartX;
+        var dy = cursor.Y - _dragStartY;
+        if (!_dragging && (Math.Abs(dx) > 4 || Math.Abs(dy) > 4))
+        {
+            _dragging = true;
+        }
+
+        if (!_dragging)
+        {
+            return;
+        }
+
+        Left = Clamp(_originLeft + dx, SystemParameters.VirtualScreenLeft - Width + 60,
+            SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth - 60);
+        Top = Clamp(_originTop + dy, SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight - 60);
+    }
+
+    private void EndDrag()
+    {
+        if (!_pressed)
+        {
+            return;
+        }
+
+        _dragTimer.Stop();
         var wasDragging = _dragging;
         _pressed = false;
         _dragging = false;
 
         if (wasDragging)
         {
-            _settings.Settings.OrbLeft = Left;
-            _settings.Settings.OrbTop = Top;
-            _settings.Save();
+            SavePosition();
             return;
         }
 
         ToggleRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private Point ScreenCursor()
+    {
+        if (!NativeMethods.GetCursorPos(out var point))
+        {
+            return new Point(_dragStartX, _dragStartY);
+        }
+
+        var dpi = VisualTreeHelper.GetDpi(this);
+        return new Point(point.X / dpi.DpiScaleX, point.Y / dpi.DpiScaleY);
+    }
+
+    private static double Clamp(double value, double min, double max)
+    {
+        return Math.Min(Math.Max(value, min), Math.Max(min, max));
+    }
+
+    private void SavePosition()
+    {
+        _settings.Settings.OrbLeft = Left;
+        _settings.Settings.OrbTop = Top;
+        _settings.Save();
+    }
+
+    public void ResetPosition()
+    {
+        var workArea = SystemParameters.WorkArea;
+        Left = workArea.Right - Width - 26;
+        Top = workArea.Bottom - Height - 26;
+        SavePosition();
+    }
+
+    private ContextMenu CreateMenu()
+    {
+        var background = new SolidColorBrush(Color.FromRgb(20, 18, 13));
+        var foreground = new SolidColorBrush(Color.FromRgb(245, 240, 228));
+        var menu = new ContextMenu
+        {
+            Background = background,
+            Foreground = foreground,
+            BorderBrush = new SolidColorBrush(Color.FromRgb(43, 37, 24)),
+            Padding = new Thickness(4)
+        };
+
+        menu.Items.Add(MenuItem("Open Diddy Flow", (_, _) => OpenRequested?.Invoke(this, EventArgs.Empty)));
+        menu.Items.Add(MenuItem("Start or stop dictation", (_, _) => ToggleRequested?.Invoke(this, EventArgs.Empty)));
+        menu.Items.Add(new Separator());
+        menu.Items.Add(MenuItem("Hide the mic", (_, _) => HideRequested?.Invoke(this, EventArgs.Empty)));
+        menu.Items.Add(MenuItem("Reset position", (_, _) => ResetPosition()));
+        return menu;
+    }
+
+    private static MenuItem MenuItem(string header, RoutedEventHandler click)
+    {
+        var item = new MenuItem
+        {
+            Header = header,
+            Padding = new Thickness(12, 6, 12, 6)
+        };
+        item.Click += click;
+        return item;
     }
 
     private Brush Brush(string key)

@@ -78,6 +78,7 @@ public sealed class SettingsService
             settings.History ??= new List<TranscriptEntry>();
             settings.GalleryImages ??= new List<string>();
             settings.AdVideos ??= new List<string>();
+            settings.HiddenAdVideos ??= new List<string>();
             if (settings.AdSkipSeconds < 1)
             {
                 settings.AdSkipSeconds = 5;

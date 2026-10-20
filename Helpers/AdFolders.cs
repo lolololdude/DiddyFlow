@@ -1,4 +1,5 @@
 using System.IO;
+using DiddyFlow.Models;
 
 namespace DiddyFlow.Helpers;
 
@@ -29,13 +30,22 @@ public static class AdFolders
 
     public static string PortableAds => Path.Combine(AppContext.BaseDirectory, "Ads");
 
-    public static IReadOnlyList<AdFolder> All => new List<AdFolder>
+    public static IReadOnlyList<AdFolder> All
     {
-        new(UserVideos, "My Videos / Diddy Ads", true),
-        new(AppDataAds, "Diddy Flow data / ads", true),
-        new(PortableAds, "App folder / Ads", true),
-        new(AppPaths.BundledAds, "Bundled samples", false)
-    };
+        get
+        {
+            var folders = new List<AdFolder>();
+            if (BuildInfo.HasAllAdFolders)
+            {
+                folders.Add(new AdFolder(UserVideos, "My Videos / Diddy Ads", true));
+                folders.Add(new AdFolder(AppDataAds, "Diddy Flow data / ads", true));
+            }
+
+            folders.Add(new AdFolder(PortableAds, "App folder / Ads", true));
+            folders.Add(new AdFolder(AppPaths.BundledAds, "Bundled ads", false));
+            return folders;
+        }
+    }
 
     public static void EnsureCreated()
     {

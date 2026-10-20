@@ -14,7 +14,7 @@
     <Product>Diddy Flow</Product>
     <Company>Bad Boy Dictation</Company>
     <Description>Offline voice dictation with maximum flow.</Description>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -22,6 +22,46 @@
     <PublishReadyToRun>true</PublishReadyToRun>
     <PublishSingleFile>false</PublishSingleFile>
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
+    <Edition Condition="'$(Edition)' == ''">Developer</Edition>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Edition)' == 'Developer'">
+    <FeatureAdsTab Condition="'$(FeatureAdsTab)' == ''">true</FeatureAdsTab>
+    <FeatureAdsSettings Condition="'$(FeatureAdsSettings)' == ''">true</FeatureAdsSettings>
+    <FeatureAdvanced Condition="'$(FeatureAdvanced)' == ''">true</FeatureAdvanced>
+    <FeatureAllAdFolders Condition="'$(FeatureAllAdFolders)' == ''">true</FeatureAllAdFolders>
+    <DefineConstants>$(DefineConstants);DIDDY_DEVELOPER</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Edition)' == 'Normal'">
+    <FeatureAdsTab Condition="'$(FeatureAdsTab)' == ''">true</FeatureAdsTab>
+    <FeatureAdsSettings Condition="'$(FeatureAdsSettings)' == ''">true</FeatureAdsSettings>
+    <FeatureAdvanced Condition="'$(FeatureAdvanced)' == ''">false</FeatureAdvanced>
+    <FeatureAllAdFolders Condition="'$(FeatureAllAdFolders)' == ''">true</FeatureAllAdFolders>
+    <DefineConstants>$(DefineConstants);DIDDY_NORMAL</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Edition)' == 'Consumer'">
+    <FeatureAdsTab Condition="'$(FeatureAdsTab)' == ''">false</FeatureAdsTab>
+    <FeatureAdsSettings Condition="'$(FeatureAdsSettings)' == ''">false</FeatureAdsSettings>
+    <FeatureAdvanced Condition="'$(FeatureAdvanced)' == ''">false</FeatureAdvanced>
+    <FeatureAllAdFolders Condition="'$(FeatureAllAdFolders)' == ''">false</FeatureAllAdFolders>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(FeatureAdsTab)' == 'true'">
+    <DefineConstants>$(DefineConstants);DIDDY_ADS_TAB</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(FeatureAdsSettings)' == 'true'">
+    <DefineConstants>$(DefineConstants);DIDDY_ADS_SETTINGS</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(FeatureAdvanced)' == 'true'">
+    <DefineConstants>$(DefineConstants);DIDDY_ADVANCED</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(FeatureAllAdFolders)' == 'true'">
+    <DefineConstants>$(DefineConstants);DIDDY_ALL_AD_FOLDERS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

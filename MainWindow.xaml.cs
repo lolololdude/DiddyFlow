@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -115,6 +116,7 @@ public partial class MainWindow : Window
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
         BuildComboBoxes();
+        ApplyEdition();
         ApplySettingsToUi();
         ApplyBranding();
         UpdateStats();
@@ -143,6 +145,25 @@ public partial class MainWindow : Window
                 ShowAd(false);
             };
             timer.Start();
+        }
+    }
+
+    private void ApplyEdition()
+    {
+        NavAds.Visibility = BuildInfo.HasAdsTab ? Visibility.Visible : Visibility.Collapsed;
+        NavAdvanced.Visibility = BuildInfo.HasAdvanced ? Visibility.Visible : Visibility.Collapsed;
+        AdSettingsCard.Visibility = BuildInfo.HasAdsSettings ? Visibility.Visible : Visibility.Collapsed;
+        EditionBadge.Visibility = BuildInfo.IsDeveloper ? Visibility.Visible : Visibility.Collapsed;
+        EditionBadgeText.Text = $"{BuildInfo.EditionName.ToUpperInvariant()} BUILD";
+
+        if (!BuildInfo.HasAdsTab)
+        {
+            NavAds.IsChecked = false;
+        }
+
+        if (!BuildInfo.HasAdvanced)
+        {
+            NavAdvanced.IsChecked = false;
         }
     }
 
@@ -932,7 +953,7 @@ public partial class MainWindow : Window
     {
         var dialog = new OpenFileDialog
         {
-            Title = "Add fake ad videos",
+            Title = "Add ad videos",
             Filter = "Video files|*.mp4;*.wmv;*.avi;*.mkv;*.mov;*.m4v;*.webm|All files|*.*",
             Multiselect = true
         };
@@ -952,7 +973,7 @@ public partial class MainWindow : Window
     {
         using var dialog = new Wf.FolderBrowserDialog
         {
-            Description = "Pick a folder full of joke ad videos",
+            Description = "Pick a folder full of ad videos",
             UseDescriptionForTitle = true
         };
         if (dialog.ShowDialog() != Wf.DialogResult.OK)
@@ -1076,9 +1097,9 @@ public partial class MainWindow : Window
             };
             remove.Click += (_, _) =>
             {
-                _settings.Settings.AdVideos.Remove(video);
-                _settings.Save();
+                _ads.Hide(video);
                 RebuildAds();
+                Toast("Removed from the playlist. The file stays on disk.");
             };
             Grid.SetColumn(badge, 1);
             Grid.SetColumn(remove, 2);
@@ -1090,9 +1111,164 @@ public partial class MainWindow : Window
         }
 
         var total = playlist.Count;
+        var hidden = _ads.HiddenCount;
         AdCountText.Text = total == 0
-            ? "No videos yet - the built-in fake ads will play"
-            : $"{total} video(s) ready";
+            ? hidden == 0 ? "No videos yet - the built-in ad card will play" : "No videos - hidden ads can be restored"
+            : hidden == 0 ? $"{total} video(s) ready" : $"{total} video(s) ready · {hidden} hidden";
+        RestoreHiddenButton.Visibility = hidden > 0 ? Visibility.Visible : Visibility.Collapsed;
+        RestoreHiddenButton.Content = hidden > 0 ? $"RESTORE HIDDEN ({hidden})" : "RESTORE HIDDEN";
+    }
+
+    private void RestoreHidden_Click(object sender, RoutedEventArgs e)
+    {
+        var hidden = _ads.HiddenCount;
+        _ads.RestoreHidden();
+        RebuildAds();
+        RefreshAdvanced();
+        Toast(hidden == 0 ? "There are no hidden ads." : $"{hidden} hidden ad(s) restored.");
+    }
+
+    private void RefreshAdvanced()
+    {
+        if (!BuildInfo.HasAdvanced)
+        {
+            return;
+        }
+
+        var model = _models.SelectedModel;
+        var playlist = _ads.Playlist();
+        var version = typeof(MainWindow).Assembly.GetName().Version;
+        AdvancedBuildText.Text =
+            $"Edition {BuildInfo.EditionName} · version {version} · ads tab {OnOff(BuildInfo.HasAdsTab)} · " +
+            $"ad settings {OnOff(BuildInfo.HasAdsSettings)} · advanced tools {OnOff(BuildInfo.HasAdvanced)} · " +
+            $"all ad folders {OnOff(BuildInfo.HasAllAdFolders)}";
+
+        AdvancedInfoText.Text = string.Join(Environment.NewLine, new[]
+        {
+            $"OS           {RuntimeInformation.OSDescription}",
+            $"Runtime      {RuntimeInformation.FrameworkDescription}",
+            $"Process      {(Environment.Is64BitProcess ? "x64" : "x86")}",
+            $"CPU          {Environment.ProcessorCount} logical cores",
+            $"Memory       {NativeMethods.GetTotalRamGb():0.0} GB",
+            $"Device       {_models.Hardware.Summary}",
+            $"Model        {model.Name} ({model.SizeLabel})",
+            $"Engine       {_transcriber.ActiveRuntime}",
+            $"Model path   {_models.GetModelPath(model)}",
+            $"Data folder  {AppPaths.Root}",
+            $"Videos       {playlist.Count} playable, {_ads.HiddenCount} hidden",
+            $"Folders      {string.Join(", ", AdFolders.All.Select(folder => folder.Label))}"
+        });
+
+        AdvancedAdsText.Text = playlist.Count == 0
+            ? "No playable videos. The built-in ad card is used instead."
+            : $"Playlist: {string.Join(", ", playlist.Take(8).Select(item => IOPath.GetFileName(item.File)))}" +
+              (playlist.Count > 8 ? $" and {playlist.Count - 8} more." : ".");
+
+        AdvancedEngineText.Text = _transcriber.ActiveRuntime is "Not loaded" or "Loading"
+            ? "The engine loads on your first dictation. Warm it up here to have it ready now."
+            : $"Loaded on {_transcriber.ActiveRuntime} with {_transcriber.ActiveModel}.";
+    }
+
+    private static string OnOff(bool value)
+    {
+        return value ? "on" : "off";
+    }
+
+    private void OpenLog_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppPaths.Logs);
+            if (File.Exists(AppPaths.LogFile))
+            {
+                Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{AppPaths.LogFile}\"") { UseShellExecute = true });
+            }
+            else
+            {
+                Process.Start(new ProcessStartInfo("explorer.exe", $"\"{AppPaths.Logs}\"") { UseShellExecute = true });
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast("Could not open the log: " + ex.Message);
+        }
+    }
+
+    private void OpenDataFolder_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo("explorer.exe", $"\"{AppPaths.Root}\"") { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Toast("Could not open the data folder: " + ex.Message);
+        }
+    }
+
+    private void OpenModelFolder_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Directory.CreateDirectory(AppPaths.Models);
+            Process.Start(new ProcessStartInfo("explorer.exe", $"\"{AppPaths.Models}\"") { UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            Toast("Could not open the model folder: " + ex.Message);
+        }
+    }
+
+    private void CopyDiagnostics_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Clipboard.SetText($"{AdvancedBuildText.Text}{Environment.NewLine}{Environment.NewLine}{AdvancedInfoText.Text}");
+            Toast("Diagnostics copied to the clipboard.");
+        }
+        catch (Exception ex)
+        {
+            Toast("Could not copy diagnostics: " + ex.Message);
+        }
+    }
+
+    private void ReloadAds_Click(object sender, RoutedEventArgs e)
+    {
+        RebuildAds();
+        RefreshAdvanced();
+        Toast("Playlist reloaded.");
+    }
+
+    private void ResetOrb_Click(object sender, RoutedEventArgs e)
+    {
+        if (Application.Current is App app)
+        {
+            app.ResetOrbPosition();
+            Toast("Floating mic moved back to its corner.");
+        }
+    }
+
+    private async void WarmEngine_Click(object sender, RoutedEventArgs e)
+    {
+        var model = _models.SelectedModel;
+        if (!_models.IsInstalled(model))
+        {
+            Toast("Install the selected model first.");
+            return;
+        }
+
+        Toast("Warming up the engine...");
+        await _transcriber.PreloadAsync(model);
+        RefreshAdvanced();
+        Toast($"Engine ready on {_transcriber.ActiveRuntime}.");
+    }
+
+    public void SyncOrbSetting()
+    {
+        _loading = true;
+        OrbToggle.IsChecked = _settings.Settings.ShowFloatingOrb;
+        _loading = false;
+        _tray.Update(_settings.Settings, _dictation.State);
     }
 
     private void RebuildGallery()
@@ -1207,17 +1383,29 @@ public partial class MainWindow : Window
 
     private void ShowPage(string tag)
     {
+        if (tag == "Ads" && !BuildInfo.HasAdsTab)
+        {
+            tag = "Studio";
+        }
+
+        if (tag == "Advanced" && !BuildInfo.HasAdvanced)
+        {
+            tag = "Studio";
+        }
+
         StudioPage.Visibility = tag == "Studio" ? Visibility.Visible : Visibility.Collapsed;
         SetupPage.Visibility = tag == "Setup" ? Visibility.Visible : Visibility.Collapsed;
         StylePage.Visibility = tag == "Style" ? Visibility.Visible : Visibility.Collapsed;
         AdsPage.Visibility = tag == "Ads" ? Visibility.Visible : Visibility.Collapsed;
+        AdvancedPage.Visibility = tag == "Advanced" ? Visibility.Visible : Visibility.Collapsed;
         AboutPage.Visibility = tag == "About" ? Visibility.Visible : Visibility.Collapsed;
 
         (PageTitle.Text, PageSubtitle.Text) = tag switch
         {
             "Setup" => ("Setup", "Engine, mic, shortcut, output, and tray behavior."),
             "Style" => ("Style", "Custom logo, backdrop, and the Diddy wall."),
-            "Ads" => ("Diddy Ads", "Fake ads. Real laughs. Always skippable."),
+            "Ads" => ("Diddy Ads", "Your videos, played as skippable ads."),
+            "Advanced" => ("Advanced", "Diagnostics, paths, and developer tools."),
             "About" => ("About", "The story, the credits, the disclaimers."),
             _ => ("Studio", "Your voice, your machine, your moment.")
         };
@@ -1225,6 +1413,10 @@ public partial class MainWindow : Window
         if (tag == "Ads")
         {
             RebuildAds();
+        }
+        else if (tag == "Advanced")
+        {
+            RefreshAdvanced();
         }
     }
 

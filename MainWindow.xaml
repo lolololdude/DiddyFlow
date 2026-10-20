@@ -124,6 +124,11 @@
                         <TextBlock Text="OFFLINE · FREE · UNHINGED" FontSize="8.5" FontWeight="SemiBold"
                                    Foreground="{StaticResource AccentBrush}" />
                     </Border>
+                    <Border x:Name="EditionBadge" Style="{StaticResource HeroChip}" Margin="8,0,0,0" Padding="8,3"
+                            VerticalAlignment="Center" Visibility="Collapsed">
+                        <TextBlock x:Name="EditionBadgeText" Text="DEVELOPER BUILD" FontSize="8.5" FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentBrush}" />
+                    </Border>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
                     <Button x:Name="MinimizeButton" Style="{StaticResource WindowControlButton}" Content="&#xE921;" Click="MinimizeButton_Click" ToolTip="Minimize" />
@@ -189,6 +194,13 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="&#xE714;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" />
                                     <TextBlock Text="Diddy Ads" Margin="12,0,0,0" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </RadioButton>
+                            <RadioButton x:Name="NavAdvanced" Style="{StaticResource NavItem}" Tag="Advanced" Checked="Nav_Checked"
+                                         Visibility="Collapsed">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="14" VerticalAlignment="Center" />
+                                    <TextBlock Text="Advanced" Margin="12,0,0,0" VerticalAlignment="Center" />
                                 </StackPanel>
                             </RadioButton>
                             <RadioButton x:Name="NavAbout" Style="{StaticResource NavItem}" Tag="About" Checked="Nav_Checked">
@@ -296,8 +308,8 @@
                                                         <StackPanel Orientation="Horizontal" Margin="0,22,0,0">
                                                             <Button x:Name="HeroStartButton" Style="{StaticResource GoldButton}" Content="START DICTATION"
                                                                     Click="RecordButton_Click" />
-                                                            <Button x:Name="HeroAdButton" Style="{StaticResource HeroLinkButton}" Content="PLAY A FAKE AD"
-                                                                    Margin="10,0,0,0" Click="TestAd_Click" />
+                            <Button x:Name="HeroAdButton" Style="{StaticResource HeroLinkButton}" Content="PLAY AN AD"
+                                    Margin="10,0,0,0" Click="TestAd_Click" />
                                                         </StackPanel>
                                                     </StackPanel>
                                                     <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="30,0,0,0">
@@ -587,10 +599,10 @@
                             <Grid x:Name="AdsPage" Visibility="Collapsed">
                                 <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                                     <StackPanel Margin="0,0,12,0">
-                                        <Border Style="{StaticResource CardBorder}" Padding="24,22">
+                                        <Border x:Name="AdSettingsCard" Style="{StaticResource CardBorder}" Padding="24,22">
                                             <StackPanel>
                                                 <TextBlock Text="DIDDY VISION" Style="{StaticResource SectionTitle}" />
-                                                <TextBlock Text="These are not real ads. They are videos on your PC, played as a joke, and they always become skippable."
+                                                <TextBlock Text="Short ads from your own video folders. Every ad can be skipped after the countdown."
                                                            Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
                                                 <CheckBox x:Name="AdsToggle" Style="{StaticResource ToggleSwitch}" Content="Enable Diddy Vision"
                                                           Margin="0,16,0,0" Checked="SettingToggle_Changed" Unchecked="SettingToggle_Changed" />
@@ -614,7 +626,7 @@
                                                     </StackPanel>
                                                 </Grid>
                                                 <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
-                                                    <Button x:Name="TestAdButton" Style="{StaticResource GoldButton}" Content="PLAY A FAKE AD NOW" Padding="18,10" Click="TestAd_Click" />
+                                                    <Button x:Name="TestAdButton" Style="{StaticResource GoldButton}" Content="PLAY AN AD NOW" Padding="18,10" Click="TestAd_Click" />
                                                     <Button x:Name="OpenAdsFolderButton" Style="{StaticResource GhostButton}" Content="Open ads folder" Margin="6,0,0,0" Click="OpenAdsFolder_Click" />
                                                 </StackPanel>
                                             </StackPanel>
@@ -626,14 +638,69 @@
                                                     <TextBlock Text="AD PLAYLIST" Style="{StaticResource SectionTitle}" />
                                                     <TextBlock x:Name="AdCountText" Style="{StaticResource MutedText}" HorizontalAlignment="Right" VerticalAlignment="Center" />
                                                 </Grid>
-                                                <TextBlock Text="Drop any video into the Diddy Ads folder and Diddy Vision will play it. MP4, MKV, AVI, MOV, WMV, and WEBM all work. The bundled jokes are included too."
+                                                <TextBlock Text="Drop any video into the Diddy Ads folder and it becomes an ad. MP4, MKV, AVI, MOV, WMV, and WEBM all work."
                                                            Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
                                                 <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
                                                     <Button x:Name="AddAdButton" Style="{StaticResource GoldButton}" Content="ADD VIDEO FILES" Padding="16,9" Click="AddAd_Click" />
                                                     <Button x:Name="AddAdFolderButton" Style="{StaticResource DarkButton}" Content="ADD FOLDER" Margin="6,0,0,0" Padding="14,9" Click="AddAdFolder_Click" />
                                                     <Button x:Name="RefreshAdsButton" Style="{StaticResource DarkButton}" Content="REFRESH" Margin="6,0,0,0" Padding="14,9" Click="RefreshAds_Click" />
+                                                    <Button x:Name="RestoreHiddenButton" Style="{StaticResource DarkButton}" Content="RESTORE HIDDEN" Margin="6,0,0,0"
+                                                            Padding="14,9" Visibility="Collapsed" Click="RestoreHidden_Click" />
                                                 </StackPanel>
                                                 <StackPanel x:Name="AdListPanel" Margin="0,14,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+
+                            <Grid x:Name="AdvancedPage" Visibility="Collapsed">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                    <StackPanel Margin="0,0,12,0">
+                                        <Border Style="{StaticResource CardBorder}" Padding="24,22">
+                                            <StackPanel>
+                                                <TextBlock Text="BUILD &amp; DIAGNOSTICS" Style="{StaticResource SectionTitle}" />
+                                                <TextBlock x:Name="AdvancedBuildText" Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
+                                                <Border Background="#100E0A" CornerRadius="12" BorderBrush="#2A2417" BorderThickness="1"
+                                                        Padding="14,12" Margin="0,14,0,0">
+                                                    <TextBlock x:Name="AdvancedInfoText" FontFamily="{StaticResource MonoFont}" FontSize="11.5"
+                                                               Foreground="{StaticResource TextBrush}" TextWrapping="Wrap" />
+                                                </Border>
+                                                <WrapPanel Margin="0,16,0,0">
+                                                    <Button Style="{StaticResource GoldButton}" Content="OPEN LOG" Padding="16,9" Click="OpenLog_Click" />
+                                                    <Button Style="{StaticResource DarkButton}" Content="OPEN DATA FOLDER" Margin="6,0,0,0"
+                                                            Padding="14,9" Click="OpenDataFolder_Click" />
+                                                    <Button Style="{StaticResource DarkButton}" Content="COPY DIAGNOSTICS" Margin="6,0,0,0"
+                                                            Padding="14,9" Click="CopyDiagnostics_Click" />
+                                                    <Button Style="{StaticResource DarkButton}" Content="RESET MIC POSITION" Margin="6,0,0,0"
+                                                            Padding="14,9" Click="ResetOrb_Click" />
+                                                </WrapPanel>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource CardBorder}" Padding="24,22" Margin="0,16,0,0">
+                                            <StackPanel>
+                                                <TextBlock Text="AD DEBUGGING" Style="{StaticResource SectionTitle}" />
+                                                <TextBlock x:Name="AdvancedAdsText" Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
+                                                <WrapPanel Margin="0,16,0,0">
+                                                    <Button Style="{StaticResource GoldButton}" Content="PLAY A TEST AD" Padding="16,9" Click="TestAd_Click" />
+                                                    <Button Style="{StaticResource DarkButton}" Content="RELOAD PLAYLIST" Margin="6,0,0,0"
+                                                            Padding="14,9" Click="ReloadAds_Click" />
+                                                    <Button Style="{StaticResource DarkButton}" Content="RESTORE HIDDEN ADS" Margin="6,0,0,0"
+                                                            Padding="14,9" Click="RestoreHidden_Click" />
+                                                </WrapPanel>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource CardBorder}" Padding="24,22" Margin="0,16,0,0">
+                                            <StackPanel>
+                                                <TextBlock Text="ENGINE" Style="{StaticResource SectionTitle}" />
+                                                <TextBlock x:Name="AdvancedEngineText" Style="{StaticResource MutedText}" Margin="0,8,0,0" TextWrapping="Wrap" />
+                                                <WrapPanel Margin="0,16,0,0">
+                                                    <Button Style="{StaticResource GoldButton}" Content="WARM UP ENGINE" Padding="16,9" Click="WarmEngine_Click" />
+                                                    <Button Style="{StaticResource DarkButton}" Content="OPEN MODEL FOLDER" Margin="6,0,0,0"
+                                                            Padding="14,9" Click="OpenModelFolder_Click" />
+                                                </WrapPanel>
                                             </StackPanel>
                                         </Border>
                                     </StackPanel>
@@ -646,7 +713,7 @@
                                         <Border Style="{StaticResource CardBorder}" Padding="24,22">
                                             <StackPanel>
                                                 <TextBlock Text="BAD BOY DICTATION" Style="{StaticResource SectionTitle}" />
-                                                <TextBlock Text="Diddy Flow is a free, offline, Windows-only voice dictation studio. It runs OpenAI Whisper locally through whisper.cpp. Nothing you say is uploaded. There is no account, no subscription, and absolutely no real advertising."
+                                                <TextBlock Text="Diddy Flow is a free, offline, Windows-only voice dictation studio. It runs OpenAI Whisper locally through whisper.cpp. Nothing you say is uploaded. There is no account, no subscription, and no tracking."
                                                            Style="{StaticResource MutedText}" Margin="0,10,0,0" TextWrapping="Wrap" />
                                                 <TextBlock Text="Hold the flow:" FontWeight="SemiBold" Margin="0,16,0,0" />
                                                 <TextBlock Text="1. Press your hotkey to start listening. Press it again to stop." Style="{StaticResource MutedText}" Margin="0,4,0,0" />

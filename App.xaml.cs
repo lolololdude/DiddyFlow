@@ -76,6 +76,7 @@ public partial class App : Application
         Orb = new FloatingOrbWindow(SettingsService);
         Orb.ToggleRequested += async (_, _) => await Dictation.ToggleAsync();
         Orb.OpenRequested += (_, _) => _main?.RestoreFromTray();
+        Orb.HideRequested += (_, _) => HideOrb();
         Orb.ApplyBranding(SettingsService.Settings);
         Orb.Show();
     }
@@ -96,6 +97,24 @@ public partial class App : Application
     public void ApplyBrandingToOrb()
     {
         Orb?.ApplyBranding(SettingsService.Settings);
+    }
+
+    public void HideOrb()
+    {
+        SettingsService.Settings.ShowFloatingOrb = false;
+        SettingsService.Save();
+        SyncOrbVisibility();
+        _main?.SyncOrbSetting();
+    }
+
+    public void ResetOrbPosition()
+    {
+        if (Orb is null)
+        {
+            CreateOrb();
+        }
+
+        Orb?.ResetPosition();
     }
 
     public void RequestExit()

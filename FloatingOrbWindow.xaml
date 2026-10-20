@@ -14,7 +14,7 @@
         WindowStartupLocation="Manual"
         SnapsToDevicePixels="True">
 
-    <Grid x:Name="Root" Background="Transparent" Cursor="Hand">
+    <Grid x:Name="Root" Background="Transparent" Cursor="SizeAll">
         <Grid.RowDefinitions>
             <RowDefinition Height="124" />
             <RowDefinition Height="*" />

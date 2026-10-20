@@ -12,6 +12,7 @@ public static class NativeMethods
     public const int WsExNoactivate = 0x08000000;
     public const int WsExToolwindow = 0x00000080;
 
+    public const int VkLeftButton = 0x01;
     public const byte VkControl = 0x11;
     public const byte VkV = 0x56;
     public const byte VkReturn = 0x0D;
@@ -22,6 +23,19 @@ public static class NativeMethods
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [DllImport("user32.dll")]
+    public static extern bool GetCursorPos(out NativePoint point);
+
+    [DllImport("user32.dll")]
+    public static extern short GetAsyncKeyState(int vKey);
 
     [DllImport("user32.dll")]
     public static extern IntPtr GetForegroundWindow();

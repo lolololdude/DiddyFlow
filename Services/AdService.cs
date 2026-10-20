@@ -72,12 +72,39 @@ public sealed class AdService
         return videos[index];
     }
 
+    public int HiddenCount => _settings.Settings.HiddenAdVideos.Count;
+
+    public bool IsHidden(string path)
+    {
+        return _settings.Settings.HiddenAdVideos.Any(hidden => hidden.Equals(path, StringComparison.OrdinalIgnoreCase));
+    }
+
+    public void Hide(string path)
+    {
+        if (!IsHidden(path))
+        {
+            _settings.Settings.HiddenAdVideos.Add(path);
+            _settings.Save();
+        }
+    }
+
+    public void RestoreHidden()
+    {
+        if (_settings.Settings.HiddenAdVideos.Count == 0)
+        {
+            return;
+        }
+
+        _settings.Settings.HiddenAdVideos.Clear();
+        _settings.Save();
+    }
+
     public IReadOnlyList<string> EffectiveVideos()
     {
         var result = new List<string>();
         foreach (var video in _settings.Settings.AdVideos)
         {
-            if (File.Exists(video) && !result.Contains(video, StringComparer.OrdinalIgnoreCase))
+            if (File.Exists(video) && !IsHidden(video) && !result.Contains(video, StringComparer.OrdinalIgnoreCase))
             {
                 result.Add(video);
             }
@@ -85,7 +112,7 @@ public sealed class AdService
 
         foreach (var (file, _) in AdFolders.Scan())
         {
-            if (!result.Contains(file, StringComparer.OrdinalIgnoreCase))
+            if (!IsHidden(file) && !result.Contains(file, StringComparer.OrdinalIgnoreCase))
             {
                 result.Add(file);
             }
@@ -101,7 +128,7 @@ public sealed class AdService
 
         foreach (var video in _settings.Settings.AdVideos)
         {
-            if (File.Exists(video) && seen.Add(video))
+            if (File.Exists(video) && !IsHidden(video) && seen.Add(video))
             {
                 result.Add((video, "Picked by you"));
             }
@@ -109,7 +136,7 @@ public sealed class AdService
 
         foreach (var (file, folder) in AdFolders.Scan())
         {
-            if (seen.Add(file))
+            if (!IsHidden(file) && seen.Add(file))
             {
                 result.Add((file, folder.Label));
             }
